@@ -78,28 +78,28 @@ void printHs(unsigned int *H) {
     }
 }
 
-void printBlocks(Sha256 *sha256) {
+void printBlocks(Sha256 *sha256, int blocksCount) {
     int blockIndex;
-    for (blockIndex = 0; blockIndex < 64; blockIndex++) {
+
+    printf("\n\nBlock[%d]\n\n", blocksCount);
+    for (blockIndex = 0; blockIndex < 64; blockIndex++)
         printf("block[%d] = %u\n", blockIndex, sha256->block[blockIndex]);
-    }
 }
 
 void clearBlockLines(unsigned int *block, int start) {
     int index;
 
-    for (index = start; index < 14; index++)
+    for (index = start; index < 16; index++)
         block[index] = 0;
 }
 
-void fillBlock(char *message, unsigned int msgLength, Sha256 *sha256) {
+void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
     unsigned int msgIndex, blockIndex, blockLine, diff, bitAdded, blocksCount;
     char *msgAux;
 
     bitAdded = blocksCount = 0;
 
     while ((blocksCount * 64) <= (msgLength + 9)) {
-
         blockIndex = 0;
         msgAux = ((64 * blocksCount) > msgLength) ? NULL : &(message[64 * blocksCount]);
         blockLine = msgAux ? (msgAux[0] << 8) : 0;
@@ -115,14 +115,16 @@ void fillBlock(char *message, unsigned int msgLength, Sha256 *sha256) {
         }
 
         if (!bitAdded && msgIndex < 64) {
+            blockLine += (1 << 7);
             diff = ((4 - msgLength % 4) * 8 - 1);
 
-            sha256->block[blockIndex++] = blockLine + (1 << diff);
+            sha256->block[blockIndex++] = blockLine << (diff - 7);
             bitAdded = 1;
         }
 
+        clearBlockLines(sha256->block, blockIndex);
+
         if (((blocksCount + 1) * 64) > (msgLength + 9)) {
-            clearBlockLines(sha256->block, blockIndex);
             sha256->block[14] = (msgLength * 8) - ((int) (msgLength * 8));
             sha256->block[15] = (int) (msgLength * 8);
         }
@@ -164,6 +166,8 @@ void fillBlock(char *message, unsigned int msgLength, Sha256 *sha256) {
         sha256->H[6] = (sha256->H[6] + sha256->g) >> 0;
         sha256->H[7] = (sha256->H[7] + sha256->h) >> 0;
 
+//        printBlocks(sha256, blocksCount);
+
         blocksCount++;
     }
 
@@ -173,22 +177,22 @@ void fillBlock(char *message, unsigned int msgLength, Sha256 *sha256) {
 }
 
 int main() {
-    char *message = NULL, fileLine[500];
+    char *message = NULL, fileLine[900];
     Sha256 *sha256;
     FILE *arq;
 
-    arq = fopen("skypeforlinux-64.deb", "r");
+    arq = fopen("teste", "r");
     if (arq == NULL) {
         printf("problemas na leitura do arquivo.");
         return 0;
     }
 
-    fgets(fileLine, 500, arq);
+    fgets(fileLine, 900, arq);
     message = (char *) malloc(sizeof(char) * (strlen(fileLine) + 1));
     strcat(message, fileLine);
 
     while (!feof(arq)) {
-        if (fgets(fileLine, 500, arq)) {
+        if (fgets(fileLine, 900, arq)) {
             message = (char *) realloc(message, sizeof(char) * (strlen(fileLine) + strlen(message) + 1));
             strcat(message, fileLine);
         }
@@ -199,7 +203,7 @@ int main() {
     sha256KInit(sha256);
     sha256HInit(sha256);
 
-    fillBlock(message, (int) strlen(message), sha256);
+    sha256Encode(message, strlen(message), sha256);
 
     printf("\n\nresult = %s\n\n\n", sha256->digest);
 
