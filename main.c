@@ -129,11 +129,6 @@ void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
             sha256->block[15] = (int) (msgLength * 8);
         }
 
-        for (blockIndex = 16; blockIndex < 64; blockIndex++)
-            sha256->block[blockIndex] =
-                    sigma1(sha256->block[blockIndex - 2]) + sha256->block[blockIndex - 7] +
-                    sigma0(sha256->block[blockIndex - 15]) + sha256->block[blockIndex - 16];
-
         sha256->a = sha256->H[0];
         sha256->b = sha256->H[1];
         sha256->c = sha256->H[2];
@@ -143,7 +138,25 @@ void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
         sha256->g = sha256->H[6];
         sha256->h = sha256->H[7];
 
-        for (blockIndex = 0; blockIndex < 64; blockIndex++) {
+        for (blockIndex = 0; blockIndex < 16; blockIndex++) {
+            sha256->T1 = sha256->h + E1(sha256->e) + Ch(sha256->e, sha256->f, sha256->g) + sha256->K[blockIndex] +
+                         sha256->block[blockIndex];
+            sha256->T2 = E0(sha256->a) + Maj(sha256->a, sha256->b, sha256->c);
+            sha256->h = sha256->g;
+            sha256->g = sha256->f;
+            sha256->f = sha256->e;
+            sha256->e = sha256->d + sha256->T1;
+            sha256->d = sha256->c;
+            sha256->c = sha256->b;
+            sha256->b = sha256->a;
+            sha256->a = sha256->T1 + sha256->T2;
+        }
+
+        for (blockIndex = 16; blockIndex < 64; blockIndex++) {
+            sha256->block[blockIndex] =
+                    sigma1(sha256->block[blockIndex - 2]) + sha256->block[blockIndex - 7] +
+                    sigma0(sha256->block[blockIndex - 15]) + sha256->block[blockIndex - 16];
+
             sha256->T1 = sha256->h + E1(sha256->e) + Ch(sha256->e, sha256->f, sha256->g) + sha256->K[blockIndex] +
                          sha256->block[blockIndex];
             sha256->T2 = E0(sha256->a) + Maj(sha256->a, sha256->b, sha256->c);
@@ -165,8 +178,6 @@ void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
         sha256->H[5] = (sha256->H[5] + sha256->f) >> 0;
         sha256->H[6] = (sha256->H[6] + sha256->g) >> 0;
         sha256->H[7] = (sha256->H[7] + sha256->h) >> 0;
-
-//        printBlocks(sha256, blocksCount);
 
         blocksCount++;
     }
@@ -205,7 +216,7 @@ int main() {
 
     sha256Encode(message, strlen(message), sha256);
 
-    printf("\n\nresult = %s\n\n\n", sha256->digest);
+    printf("\n\nDigest = %s\n\n\n", sha256->digest);
 
     free(sha256);
 
