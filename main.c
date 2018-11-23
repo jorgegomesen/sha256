@@ -1,4 +1,3 @@
-#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -99,9 +98,9 @@ void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
 
     bitAdded = blocksCount = 0;
 
-    while ((blocksCount * 64) <= (msgLength + 9)) {
+    while ((blocksCount << 6) <= (msgLength + 9)) {
         blockIndex = 0;
-        msgAux = ((64 * blocksCount) > msgLength) ? NULL : &(message[64 * blocksCount]);
+        msgAux = ((blocksCount << 6) > msgLength) ? NULL : &(message[blocksCount << 6]);
         blockLine = msgAux ? (msgAux[0] << 8) : 0;
         msgIndex = 1;
 
@@ -116,7 +115,7 @@ void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
 
         if (!bitAdded && msgIndex < 64) {
             blockLine += (1 << 7);
-            diff = ((4 - msgLength % 4) * 8 - 1);
+            diff = (((4 - msgLength % 4) << 3) - 1);
 
             sha256->block[blockIndex++] = blockLine << (diff - 7);
             bitAdded = 1;
@@ -124,9 +123,9 @@ void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
 
         clearBlockLines(sha256->block, blockIndex);
 
-        if (((blocksCount + 1) * 64) > (msgLength + 9)) {
-            sha256->block[14] = (msgLength * 8) - ((int) (msgLength * 8));
-            sha256->block[15] = (int) (msgLength * 8);
+        if (((blocksCount + 1) << 6) > (msgLength + 9)) {
+            sha256->block[14] = (msgLength << 3) - ((int) (msgLength << 3));
+            sha256->block[15] = (int) (msgLength << 3);
         }
 
         sha256->a = sha256->H[0];
@@ -182,7 +181,7 @@ void sha256Encode(char *message, unsigned int msgLength, Sha256 *sha256) {
         blocksCount++;
     }
 
-    sprintf(sha256->digest, "%08X%08X%08X%08X%08X%08X%08X%08X", sha256->H[0], sha256->H[1], sha256->H[2], sha256->H[3],
+    sprintf(sha256->digest, "%08x%08x%08x%08x%08x%08x%08x%08x", sha256->H[0], sha256->H[1], sha256->H[2], sha256->H[3],
             sha256->H[4], sha256->H[5], sha256->H[6], sha256->H[7]);
 
 }
@@ -192,7 +191,7 @@ int main() {
     Sha256 *sha256;
     FILE *arq;
 
-    arq = fopen("teste", "r");
+    arq = fopen("main.c", "r");
     if (arq == NULL) {
         printf("problemas na leitura do arquivo.");
         return 0;
